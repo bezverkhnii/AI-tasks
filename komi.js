@@ -9,7 +9,8 @@ class Point {
 
 
     function shortestPath(arr, p){
-        const paths = ['A'] //creating a path-array in sorted way 
+        let finalPay = 0;
+        const paths = ['A'] //creating a path-array in sorted way
         while (arr.length > 0){ //iterating while array length > 0
 
             const distArr = []; //creating an array of distance 
@@ -24,14 +25,16 @@ class Point {
                 if(arr[i].distance === min){ //check if distance is equal to min
                     p = arr[i]; //assigning new value to starting point
                     paths.push(p.name) //pushing this point to array in right order
+                    finalPay += p.distance;//adding value of distance so we will end up with finalPay value
                     arr.splice(arr.indexOf(arr[i]), 1) //removing this point from main array
                     break //stop iteration
                 }
             }
-            console.log(paths.join(' => ')) //logging each iteration result
+            console.log(`The route is: ${paths.join(' => ')} which travel cost is: ${finalPay} points}`) //logging each iteration result
 
         }
-        return paths.join(' => ') //return final result
+        let result = { route: paths.join(' => '), cost: `${finalPay} points` }
+        return result //return final result
     }
 
 
