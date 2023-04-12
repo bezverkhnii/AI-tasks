@@ -1,4 +1,3 @@
-// Define the data I am passing
 const items = [
     { cost: 25, weight: 12 },
     { cost: 32, weight: 8 },
@@ -12,96 +11,118 @@ const items = [
     { cost: 3, weight: 9 }
   ];
   const maxWeight = 89;
-  const populationSize = 10;
+  const populationSize = 20;
   const generations = 100;
-  
-  // creating the fitness function
-  function fitness(individual) {
-    let totalCost = 0;
-    let totalWeight = 0;
-    // Calculate the total cost and weight of the selected items
-    for (let i = 0; i < individual.length; i++) { //iterating through passed individual
-      if (individual[i] === 1) { //if individual binary value is 1 => adding to total cost and weight
-        totalCost += items[i].cost;
-        totalWeight += items[i].weight;
-      }
-    }
-     // Return the fitness as an object with the cost and weight values
-    return (totalWeight <= maxWeight) ? { cost: totalCost, weight: totalWeight } : { cost: 0, weight: 0 }; // If the total weight exceeds the maximum weight, the fitness is zero
-  }
-  
-  // Define the initial population
-  function createIndividual() {
-    // Create a new individual as an array of binary values (0 or 1)
-    return Array.from({ length: items.length }, () => Math.round(Math.random())); //creating a new array of binary values
-  }
 
-  // Generate the initial population
-  let population = Array.from({ length: populationSize }, createIndividual);
-  
-  // Implement selection
-  function selection(population) {
-    let fitnesses = population.map(fitness); // Calculate the fitness of each individual in the population(mapping fitness function to each individual in the population)
-    let totalFitness = fitnesses.reduce((a, b) => a + b.cost, 0); // Calculate the total fitness of the population
-    let probabilities = fitnesses.map(f => f.cost / totalFitness); // Calculate the probabilities of selecting each individual based on their fitness
-    let cumulativeProbabilities = probabilities.reduce((a, p, i) => [...a, p + (a[i-1] || 0)], []);// Calculate the cumulative probabilities of each individual (where a - the current value, p - probabilities array, index = i of the current value)
-    let selected = []; // Select individuals randomly based on their cumulative probabilities
-    for (let i = 0; i < populationSize; i++) {
-      let r = Math.random();
-      for (let j = 0; j < populationSize; j++) {
-        if (r <= cumulativeProbabilities[j]) {
-          selected.push(population[j]);
-          break;
-        }
+function generateChromosome(length) {
+  let chromosome = [];
+  for (let i = 0; i < length; i++) {
+    chromosome.push(Math.round(Math.random()));
+  }
+  return chromosome;
+}
+let population = [];
+for (let i = 0; i < populationSize; i++) {
+  population.push(generateChromosome(items.length));
+}
+function calculateFitness(chromosome) {
+  let totalCost = 0;
+  let totalWeight = 0;
+  for (let i = 0; i < chromosome.length; i++) {
+    if (chromosome[i] === 1) {
+      totalCost += items[i].cost;
+      totalWeight += items[i].weight;
+    }
+  }
+  if (totalWeight > maxWeight) {
+    totalCost = 0;
+  }
+  return totalCost;
+}
+
+function chromosomeToBinaryString(chromosome) {
+  return chromosome.join("");
+}
+
+console.log("Initial Population:");
+for (let i = 0; i < population.length; i++) {
+  let phenotype = [];
+  for (let j = 0; j < population[i].length; j++) {
+    if (population[i][j] === 1) {
+      phenotype.push(items[j]);
+    }
+  }
+  console.log(
+    `Chromosome ${i}: ${chromosomeToBinaryString(population[i])} ${JSON.stringify(
+      phenotype
+    )} Fitness: ${calculateFitness(population[i])}`
+  );
+}
+function rouletteWheelSelection(population) {
+  let totalFitness = 0;
+  for (let i = 0; i < population.length; i++) {
+    totalFitness += calculateFitness(population[i]);
+  }
+  let selectedChromosomes = [];
+  for (let i = 0; i < populationSize; i++) {
+    let randomValue = Math.random() * totalFitness;
+    let sum = 0;
+    for (let j = 0; j < population.length; j++) {
+      sum += calculateFitness(population[j]);
+      if (sum > randomValue) {
+        selectedChromosomes.push(population[j]);
+        break;
       }
     }
-    // Return the selected individuals
-    return selected;
   }
-  
-  // Implement crossover
-  function crossover(parent1, parent2) {
-     // Choose a random crossover point
-    let crossoverPoint = Math.floor(Math.random() * parent1.length);
-    // Create a new offspring by combining the genes of the parents at and after the crossover point
-    return [...parent1.slice(0, crossoverPoint), ...parent2.slice(crossoverPoint)];
-  }
-  
-  // Implement mutation
-  function mutation(individual) {
-    // Choose a random gene to mutate
-    let mutationPoint = Math.floor(Math.random() * individual.length);
-     // Create a new individual with the mutated gene (flip 0 to 1 or 1 to 0)
-    return [
-      ...individual.slice(0, mutationPoint),
-      1 - individual[mutationPoint],  // Flip 0 to 1 or 1 to 0
-      ...individual.slice(mutationPoint+1)
-    ];
-  }
-  
-  // Implement the genetic algorithm
-  let bestIndividual = { cost: 0, weight: 0 };
-  for (let generation = 0; generation < generations; generation++) {
-    population = selection(population);
-    let newPopulation = [];
-    while (newPopulation.length < populationSize) {
-      let parent1 = population[Math.floor(Math.random() * populationSize)];
-      let parent2 = population[Math.floor(Math.random() * populationSize)];
-      let offspring = crossover(parent1, parent2);
-      if (Math.random() < 0.1) {  // 10% chance of mutation
-        offspring = mutation(offspring);
-      }
-      newPopulation.push(offspring);
-    }
-    population = newPopulation;
-    
-    // Update the best individual found so far
-    let currentBest = population.reduce((a, b) => fitness(a).cost > fitness(b).cost ? a : b);
-    if (fitness(currentBest).cost > bestIndividual.cost) {
-      bestIndividual = fitness(currentBest);
+  return selectedChromosomes;
+}
+let selectedChromosomes = rouletteWheelSelection(population);
+console.log("Selected Chromosomes:");
+for (let i = 0; i < selectedChromosomes.length; i++) {
+  let phenotype = [];
+  for (let j = 0; j < selectedChromosomes[i].length; j++) {
+    if (selectedChromosomes[i][j] === 1) {
+      phenotype.push(items[j]);
     }
   }
-  
-  // Print the results
-  console.log("Best individual:", bestIndividual);
-  
+  let clippingPercentage = Math.round((1 - calculateFitness(selectedChromosomes[i]) / calculateFitness(population[i])) * 100);
+  console.log(`Chromosome ${i}: ${chromosomeToBinaryString(population[i])} ${JSON.stringify(
+      phenotype
+    )} Clipping: ${clippingPercentage}%`);
+}
+function crossover(chromosome1, chromosome2) {
+  let crossoverPoint = Math.floor(Math.random() * chromosome1.length);
+  let newChromosome1 = chromosome1.slice(0, crossoverPoint).concat(chromosome2.slice(crossoverPoint));
+  let newChromosome2 = chromosome2.slice(0, crossoverPoint).concat(chromosome1.slice(crossoverPoint));
+    console.log(newChromosome1, 'chr1', newChromosome2, 'chr2')
+  return [newChromosome1, newChromosome2];
+}
+function mutate(chromosome) {
+  let mutationPoint = Math.floor(Math.random() * chromosome.length);
+  let newChromosome = chromosome.slice();
+  newChromosome[mutationPoint] = 1 - newChromosome[mutationPoint];
+  return newChromosome;
+}
+
+let newPopulation = selectedChromosomes.slice();
+while (newPopulation.length < populationSize) {
+  let parent1 = selectedChromosomes[Math.floor(Math.random() * selectedChromosomes.length)];
+  let parent2 = selectedChromosomes[Math.floor(Math.random() * selectedChromosomes.length)];
+  let offspring = crossover(parent1, parent2);
+  console.log(`Offspring 1 before mutation: ${offspring[0].toString(2)}`);
+  console.log(`Offspring 2 before mutation: ${offspring[1].toString(2)}`);
+  offspring[0] = mutate(offspring[0]);
+  offspring[1] = mutate(offspring[1]);
+  console.log(`Offspring 1 after mutation: ${offspring[0].toString(2)}`);
+  console.log(`Offspring 2 after mutation: ${offspring[1].toString(2)}`);
+  newPopulation.push(offspring[0]);
+  if (newPopulation.length < populationSize) {
+    newPopulation.push(offspring[1]);
+  }
+}
+// Calculate fitness for new population
+console.log("Fitness for new population:");
+for (let i = 0; i < newPopulation.length; i++) {
+  console.log(`Chromosome ${i}: ${newPopulation[i].toString(2)} Fitness: ${calculateFitness(newPopulation[i])}`);
+}
